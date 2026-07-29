@@ -23,7 +23,11 @@ export default function FactChecker() {
 
   const settings = loadSettings();
 
-  const refreshUsage = useCallback(() => { fetchUsage().then(setUsageInfo).catch(() => setUsageInfo(null)); }, []);
+  const refreshUsage = useCallback(() => {
+    fetchUsage()
+      .then(setUsageInfo)
+      .catch(err => { console.error("fetchUsage failed:", err); setUsageInfo("error"); });
+  }, []);
   useEffect(() => { refreshUsage(); }, [refreshUsage]);
 
   const processBuffer = useCallback(async (force = false) => {
@@ -118,12 +122,13 @@ export default function FactChecker() {
 
   const isActive = phase === "listening";
   const signedOut = usageInfo === null;
+  const backendError = usageInfo === "error";
   const remainingDebate = usageInfo?.remaining?.debateSeconds ?? PLANS.free.debateSeconds;
   const planLabel = (PLANS[usageInfo?.plan] || PLANS.free).label;
 
   return (
     <div className="page fact-checker-page">
-      {!signedOut && <div className="usage-note">{fmtMinutes(remainingDebate)} of debate time left this month on {planLabel}</div>}
+      {!signedOut && !backendError && <div className="usage-note">{fmtMinutes(remainingDebate)} of debate time left this month on {planLabel}</div>}
 
       <section className="hero">
         <Waveform active={isActive} />
@@ -133,7 +138,14 @@ export default function FactChecker() {
             <h1 className="hero-title">Say something. We'll check it.</h1>
             <p className="hero-sub">Live speech, checked in real time — every claim logged, every verdict explained.</p>
 
-            {signedOut ? (
+            {backendError ? (
+              <div className="setup-needed">
+                <p>Couldn't reach the account server — this usually means the backend isn't fully configured yet
+                (check your Vercel environment variables, especially SUPABASE_SERVICE_KEY), not a problem with your
+                account. Check the browser console (F12) for the exact error.</p>
+                <button className="ctrl-btn ctrl-primary" onClick={refreshUsage}>Try Again</button>
+              </div>
+            ) : signedOut ? (
               <div className="setup-needed">
                 <p>Sign in to start checking claims — free accounts get 5 debates a month.</p>
                 <a href="/#/login" className="ctrl-btn ctrl-primary">Sign In →</a>

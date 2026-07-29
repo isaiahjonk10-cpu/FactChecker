@@ -39,7 +39,11 @@ export default function VersusMode() {
   const secondsElapsedRef = useRef(0);
   const tickIntervalRef = useRef(null);
 
-  const refreshUsage = useCallback(() => { fetchUsage().then(setUsageInfo).catch(() => setUsageInfo(null)); }, []);
+  const refreshUsage = useCallback(() => {
+    fetchUsage()
+      .then(setUsageInfo)
+      .catch(err => { console.error("fetchUsage failed:", err); setUsageInfo("error"); });
+  }, []);
   useEffect(() => { refreshUsage(); }, [refreshUsage]);
   useEffect(() => { claimsRef.current = claims; }, [claims]);
   useEffect(() => () => clearInterval(tickIntervalRef.current), []);
@@ -212,7 +216,13 @@ export default function VersusMode() {
           {limitBlocked && <p className="hero-warning">{limitBlocked} <a href="/#/upgrade">Upgrade</a> for more.</p>}
 
           <div className="versus-setup-footer">
-            {usageInfo === null ? (
+            {usageInfo === "error" ? (
+              <div className="setup-needed">
+                <p>Couldn't reach the account server — check Vercel's environment variables (especially
+                SUPABASE_SERVICE_KEY) or check the browser console (F12) for the exact error.</p>
+                <button className="ctrl-btn ctrl-primary" onClick={refreshUsage}>Try Again</button>
+              </div>
+            ) : usageInfo === null ? (
               <div className="setup-needed">
                 <p>Sign in to start a Versus debate.</p>
                 <a href="/#/login" className="ctrl-btn ctrl-primary">Sign In →</a>

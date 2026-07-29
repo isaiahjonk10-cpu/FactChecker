@@ -38,7 +38,11 @@ export default function VideoChecker() {
   const settings = loadSettings();
   const plan = PLANS[usageInfo?.plan] || PLANS.free;
 
-  const refreshUsage = useCallback(() => { fetchUsage().then(setUsageInfo).catch(() => setUsageInfo(null)); }, []);
+  const refreshUsage = useCallback(() => {
+    fetchUsage()
+      .then(setUsageInfo)
+      .catch(err => { console.error("fetchUsage failed:", err); setUsageInfo("error"); });
+  }, []);
   useEffect(() => { refreshUsage(); }, [refreshUsage]);
 
   function handleLoadVideo(e) {
@@ -303,7 +307,13 @@ export default function VideoChecker() {
 
           {limitWarning && <p className="hero-warning">{limitWarning} <a href="/#/upgrade">Upgrade</a> for more.</p>}
 
-          {usageInfo === null ? (
+          {usageInfo === "error" ? (
+            <div className="setup-needed">
+              <p>Couldn't reach the account server — check Vercel's environment variables (especially
+              SUPABASE_SERVICE_KEY) or check the browser console (F12) for the exact error.</p>
+              <button className="ctrl-btn ctrl-primary" onClick={refreshUsage}>Try Again</button>
+            </div>
+          ) : usageInfo === null ? (
             <div className="setup-needed">
               <p>Sign in to run a fact-check.</p>
               <a href="/#/login" className="ctrl-btn ctrl-primary">Sign In →</a>
